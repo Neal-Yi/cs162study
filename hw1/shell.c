@@ -143,7 +143,8 @@ int main(int argc, char *argv[]) {
       }
       argv[i] = NULL;
 
-      bool isbackgroud = (argv[token_length - 1][0] == '&');
+      bool isbackground = (argv[token_length - 1][0] == '&');
+      if(isbackground) argv[token_length - 1] = NULL;
 	    int cpid = fork();
 	    if(cpid== 0){
 	
@@ -182,13 +183,14 @@ int main(int argc, char *argv[]) {
 		    subprocess_pgid = cpid;
 		    setpgid(subprocess_pgid,subprocess_pgid); 
 		    signal(SIGINT, signal_callback);
-        if (isbackgroud)
-        {
-          kill(-subprocess_pgid, SIGTSTP);
-          printf("%d\n", subprocess_pgid);
-        }
-		    int status;
-		    wait(&status);
+		    if (isbackground)
+		    {
+			    kill(-subprocess_pgid, SIGCONT);
+			    printf("%d\n", subprocess_pgid);
+		    }else{
+			    int status;
+			    wait(&status);
+		    }
 	    }
     }
 
