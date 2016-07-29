@@ -24,8 +24,12 @@ struct termios shell_tmodes;
 /* Process group id for the shell */
 pid_t shell_pgid;
 
+pid_t subprocess_pgid;
+
 int cmd_exit(struct tokens *tokens);
 int cmd_help(struct tokens *tokens);
+int cmd_cd(struct tokens *tokens);
+int cmd_pwd(struct tokens *tokens);
 
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
@@ -40,6 +44,8 @@ typedef struct fun_desc {
 fun_desc_t cmd_table[] = {
   {cmd_help, "?", "show this help menu"},
   {cmd_exit, "exit", "exit the command shell"},
+  {cmd_pwd, "pwd", "show the current working directory"},
+  {cmd_cd, "cd", "change working directory to specific path"},
 };
 
 /* Prints a helpful description for the given command */
@@ -54,6 +60,23 @@ int cmd_exit(struct tokens *tokens) {
   exit(0);
 }
 
+/* Show current working directory*/
+int cmd_pwd(struct tokens *tokens){
+  char pwd[1024];
+  getcwd(pwd, 1024);
+  fprintf(stdout, "%s\n", pwd);
+  return 1;
+}
+/* change working directory */
+int cmd_cd(struct tokens *tokens){
+ int ret =  chdir(tokens_get_token(tokens, 1)); 
+ if(ret<0)
+{
+	fprintf(stderr, "plesae enter a correct path\n"); 
+return -1;
+}
+   return 1;	
+}
 /* Looks up the built-in command, if it exists. */
 int lookup(char cmd[]) {
   for (int i = 0; i < sizeof(cmd_table) / sizeof(fun_desc_t); i++)
@@ -108,8 +131,51 @@ int main(int argc, char *argv[]) {
     if (fundex >= 0) {
       cmd_table[fundex].fun(tokens);
     } else {
-      /* REPLACE this to run commands as programs. */
-      fprintf(stdout, "This shell doesn't know how to run programs.\n");
+	    int ret = fork();
+	    if(ret == 0){
+		    char *argv[1024];
+		    int token_length = tokens_get_length(tokens);
+		    int i = 0;
+		    for(; i < token_length  ; i++){
+			    argv[i] = tokens_get_token(tokens, i );
+		    }
+		    argv[i] = NULL;
+		    char path[1024];
+		   if(argv[0][0] != '/' && argv[0][0]!='.' &&argv[0][0]!='~')
+		   {
+
+			    char *up_env = getenv("PATH");
+			    char *s =up_env;
+			    while((*up_env)!=0){
+				    if(*up_env == ':')
+				    {
+					    *up_env = 0;
+					    strcpy(path, s);
+					    strcat(path,"/");
+					    strcat(path,argv[0]);
+					    char *tmp = argv[0];
+					    argv[0] = path;
+					    s = up_env + 1;
+					    if(execv(path, argv)<0)
+					    {
+						    argv[0] = tmp;
+					    }else break;
+				    }
+				    up_env++;
+			    }
+			    if((*up_env) == 0)
+				    fprintf(stderr, "no command was found!\n");
+		   }else{
+			   if(execv(argv[0], argv) < 0)
+				   fprintf(stderr, "no command was found!\n");
+		   }
+
+		    		    
+	    }else if(ret > 0){
+		    int status;
+		    wait(&status);
+
+	    }
     }
 
     if (shell_is_interactive)
