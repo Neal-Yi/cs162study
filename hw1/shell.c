@@ -140,11 +140,30 @@ int main(int argc, char *argv[]) {
       int i = 0;
       for(; i < token_length  ; i++){
         argv[i] = tokens_get_token(tokens, i );
+        if (argv[i][0] == '<')
+        {
+          int j =0;
+          while(argv[i][j] != '\0' && argv[i][j] != '>')j++;
+          if(argv[i][j] != '\0'){
+            freopen(&argv[i][j+1], "wb", stdout);
+          }
+          freopen(argv[i], "rb", stdin);
+          i --;
+        }else if (argv[i][0] == '>')
+        {   
+           int j =0;
+          while(argv[i][j] != '\0' && argv[i][j] != '<')j++;
+          if(argv[i][j] != '\0'){
+            freopen(&argv[i][j+1], "rb", stdin);
+          }
+          freopen(argv[i], "wb", stdout);
+          i --; 
+        }
       }
       argv[i] = NULL;
 
       bool isbackground = (argv[token_length - 1][0] == '&');
-      if(isbackground) argv[token_length - 1] = NULL;
+      if(isbackground) argv[token_length - 1] = NULL;// remove & from input argv
 	    int cpid = fork();
 	    if(cpid== 0){
 	
