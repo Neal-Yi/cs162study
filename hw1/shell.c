@@ -138,29 +138,27 @@ int main(int argc, char *argv[]) {
       char *argv[1024];
       int token_length = tokens_get_length(tokens);
       int i = 0;
-      for(; i < token_length  ; i++){
-        argv[i] = tokens_get_token(tokens, i );
-        if (argv[i][0] == '<')
+      for(int argc = 0; i < token_length  ; i++){
+        argv[argc] = tokens_get_token(tokens, i );
+        if (argv[argc][0] == '<')
         {
           int j =0;
-          while(argv[i][j] != '\0' && argv[i][j] != '>')j++;
-          if(argv[i][j] != '\0'){
-            freopen(&argv[i][j+1], "wb", stdout);
+          while(argv[argc][j] != '\0' && argv[argc][j] != '>')j++;
+          if(argv[argc][j] != '\0'){
+            freopen(&argv[argc][j+1], "wb", stdout);
           }
-          freopen(argv[i], "rb", stdin);
-          i --;
-        }else if (argv[i][0] == '>')
+          freopen(argv[argc], "rb", stdin);
+        }else if (argv[argc][0] == '>')
         {   
            int j =0;
-          while(argv[i][j] != '\0' && argv[i][j] != '<')j++;
-          if(argv[i][j] != '\0'){
-            freopen(&argv[i][j+1], "rb", stdin);
+          while(argv[argc][j] != '\0' && argv[argc][j] != '<')j++;
+          if(argv[argc][j] != '\0'){
+            freopen(&argv[argc][j+1], "rb", stdin);
           }
-          freopen(argv[i], "wb", stdout);
-          i --; 
-        }
+          freopen(argv[argc], "wb", stdout);
+        }else argc ++;
       }
-      argv[i] = NULL;
+      argv[argc] = NULL;
 
       bool isbackground = (argv[token_length - 1][0] == '&');
       if(isbackground) argv[token_length - 1] = NULL;// remove & from input argv
