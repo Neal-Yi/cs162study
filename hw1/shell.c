@@ -31,6 +31,7 @@ int cmd_help(struct tokens *tokens);
 int cmd_cd(struct tokens *tokens);
 int cmd_pwd(struct tokens *tokens);
 
+void singal_callback(int signum);
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
 
@@ -111,6 +112,9 @@ void init_shell() {
   }
 }
 
+void signal_callback(int signum){
+	kill(-subprocess_pgid, signum);
+}
 int main(int argc, char *argv[]) {
   init_shell();
 
@@ -131,8 +135,8 @@ int main(int argc, char *argv[]) {
     if (fundex >= 0) {
       cmd_table[fundex].fun(tokens);
     } else {
-	    int ret = fork();
-	    if(ret == 0){
+	    int cpid = fork();
+	    if(cpid== 0){
 		    char *argv[1024];
 		    int token_length = tokens_get_length(tokens);
 		    int i = 0;
@@ -170,11 +174,13 @@ int main(int argc, char *argv[]) {
 				   fprintf(stderr, "no command was found!\n");
 		   }
 
-		    		    
-	    }else if(ret > 0){
+		   exit(0); 		    
+	    }else if(cpid > 0){
+		    subprocess_pgid = cpid;
+		    setpgid(subprocess_pgid,subprocess_pgid); 
+		    signal(SIGINT, signal_callback);
 		    int status;
 		    wait(&status);
-
 	    }
     }
 
