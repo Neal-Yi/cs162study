@@ -135,15 +135,18 @@ int main(int argc, char *argv[]) {
     if (fundex >= 0) {
       cmd_table[fundex].fun(tokens);
     } else {
+      char *argv[1024];
+      int token_length = tokens_get_length(tokens);
+      int i = 0;
+      for(; i < token_length  ; i++){
+        argv[i] = tokens_get_token(tokens, i );
+      }
+      argv[i] = NULL;
+
+      bool isbackgroud = (argv[token_length - 1][0] == '&');
 	    int cpid = fork();
 	    if(cpid== 0){
-		    char *argv[1024];
-		    int token_length = tokens_get_length(tokens);
-		    int i = 0;
-		    for(; i < token_length  ; i++){
-			    argv[i] = tokens_get_token(tokens, i );
-		    }
-		    argv[i] = NULL;
+	
 		    char path[1024];
 		   if(argv[0][0] != '/' && argv[0][0]!='.' &&argv[0][0]!='~')
 		   {
@@ -173,12 +176,17 @@ int main(int argc, char *argv[]) {
 			   if(execv(argv[0], argv) < 0)
 				   fprintf(stderr, "no command was found!\n");
 		   }
-
+      // subprocess should exit;
 		   exit(0); 		    
 	    }else if(cpid > 0){
 		    subprocess_pgid = cpid;
 		    setpgid(subprocess_pgid,subprocess_pgid); 
 		    signal(SIGINT, signal_callback);
+        if (isbackgroud)
+        {
+          kill(-subprocess_pgid, SIGTSTP);
+          printf("%d\n", subprocess_pgid);
+        }
 		    int status;
 		    wait(&status);
 	    }
