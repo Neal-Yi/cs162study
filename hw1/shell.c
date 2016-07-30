@@ -135,36 +135,47 @@ int main(int argc, char *argv[]) {
     if (fundex >= 0) {
       cmd_table[fundex].fun(tokens);
     } else {
-      char *argv[1024];
-      int token_length = tokens_get_length(tokens);
-      int i = 0;
-      for(int argc = 0; i < token_length  ; i++){
-        argv[argc] = tokens_get_token(tokens, i );
-        if (argv[argc][0] == '<')
-        {
-          int j =0;
-          while(argv[argc][j] != '\0' && argv[argc][j] != '>')j++;
-          if(argv[argc][j] != '\0'){
-            freopen(&argv[argc][j+1], "wb", stdout);
-          }
-          freopen(argv[argc], "rb", stdin);
-        }else if (argv[argc][0] == '>')
-        {   
-           int j =0;
-          while(argv[argc][j] != '\0' && argv[argc][j] != '<')j++;
-          if(argv[argc][j] != '\0'){
-            freopen(&argv[argc][j+1], "rb", stdin);
-          }
-          freopen(argv[argc], "wb", stdout);
-        }else argc ++;
-      }
-      argv[argc] = NULL;
-
-      bool isbackground = (argv[token_length - 1][0] == '&');
-      if(isbackground) argv[token_length - 1] = NULL;// remove & from input argv
+	    char *argv[1024];
+	    int token_length = tokens_get_length(tokens);
+	    char *lastArgvment = tokens_get_token(tokens, token_length - 1);
+	    bool isbackground = (lastArgvment[0] == '&');
 	    int cpid = fork();
 	    if(cpid== 0){
-	
+
+		    int argc = 0;
+		    bool isredir_stdin = false, isredir_stdout = false;
+		    for(int i = 0; i < token_length  ; i++){
+			    argv[argc] = tokens_get_token(tokens, i );
+			    if (argv[argc][0] == '<')
+			    {
+				    int j =0;
+				    while(argv[argc][j] != '\0' && argv[argc][j] != '>')j++;
+				    if(argv[argc][j] != '\0'){
+					    freopen(&argv[argc][j+1], "wb", stdout);
+					    argv[argc][j] = '\0';
+					    isredir_stdout = true;
+				    }
+				    freopen(&argv[argc][1], "rb", stdin);
+				    isredir_stdin = true;
+			    }else if (argv[argc][0] == '>')
+			    {   
+				    int j =0;
+				    while(argv[argc][j] != '\0' && argv[argc][j] != '<')j++;
+				    if(argv[argc][j] != '\0'){
+					    freopen(&argv[argc][j+1], "rb", stdin);
+					    argv[argc][j] = '\0';
+					    isredir_stdin = true;
+				    }
+
+				    
+				    freopen(&argv[argc][1], "wb", stdout);
+
+				    isredir_stdout = true;
+				   
+			    }else if(argv[argc][0] != '&')argc ++;
+
+		    }
+		    argv[argc] = NULL;
 		    char path[1024];
 		   if(argv[0][0] != '/' && argv[0][0]!='.' &&argv[0][0]!='~')
 		   {
@@ -195,6 +206,10 @@ int main(int argc, char *argv[]) {
 				   fprintf(stderr, "no command was found!\n");
 		   }
       // subprocess should exit;
+		   if(isredir_stdin)fclose(stdin);
+
+		   if(isredir_stdout)fclose(stdout);
+
 		   exit(0); 		    
 	    }else if(cpid > 0){
 		    subprocess_pgid = cpid;
