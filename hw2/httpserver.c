@@ -13,7 +13,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <unistd.h>
 
 #include "libhttp.h"
 
@@ -44,7 +43,31 @@ void handle_files_request(int fd) {
   /* YOUR CODE HERE (Feel free to delete/modify the existing code below) */
 
   struct http_request *request = http_request_parse(fd);
+  if(chdir( server_files_directory) < 0)
+	  return;
+  struct stat *fstat = malloc(sizeof(struct stat));
+  if(fstat == NULL)
+	  fprintf(stderr,"%s\n","malloc failed");
+  if(request == NULL)
+	  return;
+  stat(request->path + 1, fstat);
+  if(S_ISREG(fstat->st_mode)){
+	  FILE* file = fopen(request->path+1, "rb");
+	  if(file == NULL) return;
+	  fseek(file, 0, SEEK_END);
+	  int filesize = ftell(file);
+	  rewind(file);
+	  char *buf = malloc(filesize);
+	  char filesize_str[16];
+	  sprintf(filesize_str, "%d", filesize);
+	  fread(buf, 1, filesize, file);
+	  http_start_response(fd, 200);
+	  http_send_header(fd, "Content-type", http_get_mime_type(request->path+1));
+	  http_send_header(fd, "Content-length",filesize_str);
+	  http_end_headers(fd);
+	  http_send_data(fd, buf, filesize);
 
+  }
   http_start_response(fd, 200);
   http_send_header(fd, "Content-type", "text/html");
   http_end_headers(fd);

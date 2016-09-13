@@ -12,6 +12,12 @@
 
 #include "tokenizer.h"
 
+<<<<<<< HEAD
+=======
+/* Convenience macro to silence compiler warnings about unused function parameters. */
+#define unused __attribute__((unused))
+
+>>>>>>> df688b5987617d5f90f72118494451d1dce70931
 /* Whether the shell is connected to an actual terminal or not. */
 bool shell_is_interactive;
 
@@ -24,6 +30,7 @@ struct termios shell_tmodes;
 /* Process group id for the shell */
 pid_t shell_pgid;
 
+<<<<<<< HEAD
 pid_t subprocess_pgid;
 
 int cmd_exit(struct tokens *tokens);
@@ -32,6 +39,11 @@ int cmd_cd(struct tokens *tokens);
 int cmd_pwd(struct tokens *tokens);
 
 void singal_callback(int signum);
+=======
+int cmd_exit(struct tokens *tokens);
+int cmd_help(struct tokens *tokens);
+
+>>>>>>> df688b5987617d5f90f72118494451d1dce70931
 /* Built-in command functions take token array (see parse.h) and return int */
 typedef int cmd_fun_t(struct tokens *tokens);
 
@@ -45,6 +57,7 @@ typedef struct fun_desc {
 fun_desc_t cmd_table[] = {
   {cmd_help, "?", "show this help menu"},
   {cmd_exit, "exit", "exit the command shell"},
+<<<<<<< HEAD
   {cmd_pwd, "pwd", "show the current working directory"},
   {cmd_cd, "cd", "change working directory to specific path"},
 };
@@ -52,11 +65,19 @@ fun_desc_t cmd_table[] = {
 /* Prints a helpful description for the given command */
 int cmd_help(struct tokens *tokens) {
   for (int i = 0; i < sizeof(cmd_table) / sizeof(fun_desc_t); i++)
+=======
+};
+
+/* Prints a helpful description for the given command */
+int cmd_help(unused struct tokens *tokens) {
+  for (unsigned int i = 0; i < sizeof(cmd_table) / sizeof(fun_desc_t); i++)
+>>>>>>> df688b5987617d5f90f72118494451d1dce70931
     printf("%s - %s\n", cmd_table[i].cmd, cmd_table[i].doc);
   return 1;
 }
 
 /* Exits this shell */
+<<<<<<< HEAD
 int cmd_exit(struct tokens *tokens) {
   exit(0);
 }
@@ -81,6 +102,15 @@ return -1;
 /* Looks up the built-in command, if it exists. */
 int lookup(char cmd[]) {
   for (int i = 0; i < sizeof(cmd_table) / sizeof(fun_desc_t); i++)
+=======
+int cmd_exit(unused struct tokens *tokens) {
+  exit(0);
+}
+
+/* Looks up the built-in command, if it exists. */
+int lookup(char cmd[]) {
+  for (unsigned int i = 0; i < sizeof(cmd_table) / sizeof(fun_desc_t); i++)
+>>>>>>> df688b5987617d5f90f72118494451d1dce70931
     if (cmd && (strcmp(cmd_table[i].cmd, cmd) == 0))
       return i;
   return -1;
@@ -112,10 +142,14 @@ void init_shell() {
   }
 }
 
+<<<<<<< HEAD
 void signal_callback(int signum){
 	kill(-subprocess_pgid, signum);
 }
 int main(int argc, char *argv[]) {
+=======
+int main(unused int argc, unused char *argv[]) {
+>>>>>>> df688b5987617d5f90f72118494451d1dce70931
   init_shell();
 
   static char line[4096];
@@ -135,6 +169,7 @@ int main(int argc, char *argv[]) {
     if (fundex >= 0) {
       cmd_table[fundex].fun(tokens);
     } else {
+<<<<<<< HEAD
 	    char *argv[1024];
 	    int token_length = tokens_get_length(tokens);
 	    char *lastArgvment = tokens_get_token(tokens, token_length - 1);
@@ -224,6 +259,10 @@ int main(int argc, char *argv[]) {
 			    wait(&status);
 		    }
 	    }
+=======
+      /* REPLACE this to run commands as programs. */
+      fprintf(stdout, "This shell doesn't know how to run programs.\n");
+>>>>>>> df688b5987617d5f90f72118494451d1dce70931
     }
 
     if (shell_is_interactive)
