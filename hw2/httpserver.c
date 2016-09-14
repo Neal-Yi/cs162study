@@ -32,7 +32,8 @@ int server_proxy_port;
  *   1) If user requested an existing file, respond with the file
  *   2) If user requested a directory and index.html exists in the directory, 
  *      send the index.html file.  
- *   3) If user requested a directory and index.html doesn't exist, send a list *      of files in the directory with links to each.
+ *   3) If user requested a directory and index.html doesn't exist, send a list 
+ *      of files in the directory with links to each.
  *   4) Send a 404 Not Found response.
  */
 static char buf[LIMIT_HANDLE_MAX_SIZE];
@@ -73,13 +74,12 @@ void handle_files_request(int fd) {
   else if(S_ISDIR(fstat->st_mode)){
 	  DIR* dir = opendir(buf);
 	  struct dirent *pdirent; 
-	  const char* defaultfile = "index.html";
+	  const char* defaultfile = "/index.html";
 	  strcat(buf, defaultfile);
 	  FILE* findex = fopen(buf, "rb");
 
 	  if(findex != NULL)
 	  {
-printf("req");
 		  http_start_response(fd, 200);
 		  http_send_header(fd, "Content-type", "text/html");
 		  http_end_headers(fd);
@@ -97,10 +97,37 @@ printf("req");
 				  "<center>"
 				  "<h1>Welcome to httpserver!</h1>"
 				  "</center>");
-		  while( (pdirent = readdir(dir)) && pdirent != NULL && pdirent->d_name[0]!='.'){
-			  http_send_string(fd, "<p>"); 
+		  http_send_string(fd,"<p>"
+				  "<a href=""");
+		  int pathlen = strlen(request->path),i;
+		  i = pathlen - 1;
+		  // ingonre extra slash in the request path tail
+		  while(i > 0 &&request->path[i] == '/')i--;
+		  // jump to parent directory path means goback until slash
+		  while(i > 0 &&request->path[i] != '/')i--;
+		  memcpy(buf, request->path, i+1);
+		  buf[i+1]='\0';
+		  // store parent directory in buffer
+		  http_send_string(fd,buf); 
+		  http_send_string(fd,""">");
+		  // if parent directory path is / means homepage otherwise means a real directory
+		  if(i != 0)		  
+			  http_send_string(fd, "Parent Directory"); 
+		  else
+			  http_send_string(fd, "Home");
+
+		  http_send_string(fd, "</a>"
+				  "</p>");
+		  while( (pdirent = readdir(dir)) && pdirent != NULL ){ 
+			  /* skip this directory and parent directory which reprented by '.' and '..' respectively */ 
+			  if(pdirent->d_name[0] == '.')continue;
+			  http_send_string(fd,"<p>"
+					  "<a href=""");
 			  http_send_string(fd, pdirent->d_name); 
-			  http_send_string(fd, "<p>");
+			  http_send_string(fd,""">");
+			  http_send_string(fd, pdirent->d_name); 
+			  http_send_string(fd, "</a>"
+					  "</p>");
 		  }
 	  }
 	  closedir(dir);
