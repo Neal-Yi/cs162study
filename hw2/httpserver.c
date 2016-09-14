@@ -26,22 +26,20 @@ int server_port;
 char *server_files_directory;
 char *server_proxy_hostname;
 int server_proxy_port;
-
-/*
- * Reads an HTTP request from stream (fd), and writes an HTTP response
- * containing:
- *
+#define LIMIT_HANDLE_MAX_SIZE 8192 
+/* 
+ * Reads an HTTP request from stream (fd), and writes an HTTP response * containing: * 
  *   1) If user requested an existing file, respond with the file
- *   2) If user requested a directory and index.html exists in the directory,
- *      send the index.html file.
- *   3) If user requested a directory and index.html doesn't exist, send a list
- *      of files in the directory with links to each.
+ *   2) If user requested a directory and index.html exists in the directory, 
+ *      send the index.html file.  
+ *   3) If user requested a directory and index.html doesn't exist, send a list *      of files in the directory with links to each.
  *   4) Send a 404 Not Found response.
  */
+static char buf[LIMIT_HANDLE_MAX_SIZE];
 void handle_files_request(int fd) {
 
   /* YOUR CODE HERE (Feel free to delete/modify the existing code below) */
-
+ int sendsize;
   struct http_request *request = http_request_parse(fd);
   if(chdir( server_files_directory) < 0)
 	  return;
@@ -50,34 +48,63 @@ void handle_files_request(int fd) {
 	  fprintf(stderr,"%s\n","malloc failed");
   if(request == NULL)
 	  return;
-  stat(request->path + 1, fstat);
+  buf[0] = '.', buf[1] = '\0';
+  strcat(buf, request->path);
+  stat(buf, fstat);
   if(S_ISREG(fstat->st_mode)){
-	  FILE* file = fopen(request->path+1, "rb");
+	  FILE* file = fopen(buf, "rb");
 	  if(file == NULL) return;
 	  fseek(file, 0, SEEK_END);
 	  int filesize = ftell(file);
 	  rewind(file);
-	  char *buf = malloc(filesize);
 	  char filesize_str[16];
 	  sprintf(filesize_str, "%d", filesize);
-	  fread(buf, 1, filesize, file);
 	  http_start_response(fd, 200);
 	  http_send_header(fd, "Content-type", http_get_mime_type(request->path+1));
 	  http_send_header(fd, "Content-length",filesize_str);
 	  http_end_headers(fd);
-	  http_send_data(fd, buf, filesize);
+	  while(!feof(file)){
+		  sendsize = fread(buf, 1, LIMIT_HANDLE_MAX_SIZE, file);
+		  http_send_data(fd, buf, sendsize);
+	  }	
+	  fclose(file);
 
   }
-  http_start_response(fd, 200);
-  http_send_header(fd, "Content-type", "text/html");
-  http_end_headers(fd);
-  http_send_string(fd,
-      "<center>"
-      "<h1>Welcome to httpserver!</h1>"
-      "<hr>"
-      "<p>Nothing's here yet.</p>"
-      "</center>");
+  else if(S_ISDIR(fstat->st_mode)){
+	  DIR* dir = opendir(buf);
+	  struct dirent *pdirent; 
+	  const char* defaultfile = "index.html";
+	  strcat(buf, defaultfile);
+	  FILE* findex = fopen(buf, "rb");
 
+	  if(findex != NULL)
+	  {
+printf("req");
+		  http_start_response(fd, 200);
+		  http_send_header(fd, "Content-type", "text/html");
+		  http_end_headers(fd);
+		  while(!feof(findex)){
+			  sendsize = fread(buf, 1, LIMIT_HANDLE_MAX_SIZE, findex);
+			  http_send_data(fd, buf, sendsize);
+		  }	
+		  fclose(findex);
+	  }
+	  else{
+		  http_start_response(fd, 200);
+		  http_send_header(fd, "Content-type", "text/html");
+		  http_end_headers(fd);
+		  http_send_string(fd,
+				  "<center>"
+				  "<h1>Welcome to httpserver!</h1>"
+				  "</center>");
+		  while( (pdirent = readdir(dir)) && pdirent != NULL && pdirent->d_name[0]!='.'){
+			  http_send_string(fd, "<p>"); 
+			  http_send_string(fd, pdirent->d_name); 
+			  http_send_string(fd, "<p>");
+		  }
+	  }
+	  closedir(dir);
+  }
 }
 
 /*
