@@ -98,18 +98,13 @@ void handle_files_request(int fd) {
 				  "<h1>Welcome to httpserver!</h1>"
 				  "</center>");
 		  http_send_string(fd,"<p>"
-				  "<a href=""");
+				  "<a href=\"../\">");
 		  int pathlen = strlen(request->path),i;
 		  i = pathlen - 1;
 		  // ingonre extra slash in the request path tail
 		  while(i > 0 &&request->path[i] == '/')i--;
 		  // jump to parent directory path means goback until slash
 		  while(i > 0 &&request->path[i] != '/')i--;
-		  memcpy(buf, request->path, i+1);
-		  buf[i+1]='\0';
-		  // store parent directory in buffer
-		  http_send_string(fd,buf); 
-		  http_send_string(fd,""">");
 		  // if parent directory path is / means homepage otherwise means a real directory
 		  if(i != 0)		  
 			  http_send_string(fd, "Parent Directory"); 
@@ -120,17 +115,24 @@ void handle_files_request(int fd) {
 				  "</p>");
 		  while( (pdirent = readdir(dir)) && pdirent != NULL ){ 
 			  /* skip this directory and parent directory which reprented by '.' and '..' respectively */ 
-			  if(pdirent->d_name[0] == '.')continue;
+			  if(pdirent->d_name[0] == '.' ||(pdirent->d_type != DT_REG && 
+						  pdirent->d_type != DT_DIR))continue;
 			  http_send_string(fd,"<p>"
-					  "<a href=""");
+					  "<a href=\"");
 			  http_send_string(fd, pdirent->d_name); 
-			  http_send_string(fd,""">");
+			  if(pdirent->d_type == DT_DIR) 
+				  http_send_string(fd,"/\">");
+			  else
+				  http_send_string(fd, "\">");
 			  http_send_string(fd, pdirent->d_name); 
 			  http_send_string(fd, "</a>"
 					  "</p>");
 		  }
 	  }
 	  closedir(dir);
+  }
+  else{
+	  http_start_response(fd, 404);
   }
 }
 
