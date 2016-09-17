@@ -31,7 +31,7 @@
 .dSYM
 .DS_Store
 *.swp
-
+*.swo
 #HW0
 hw0/main
 hw0/map
