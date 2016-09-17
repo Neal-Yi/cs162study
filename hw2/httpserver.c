@@ -26,7 +26,7 @@ int server_port;
 char *server_files_directory;
 char *server_proxy_hostname;
 int server_proxy_port;
-#define LIMIT_HANDLE_MAX_SIZE 8192 
+#define LIMIT_HANDLE_MAX_SIZE 20*1024
 /* 
  * Reads an HTTP request from stream (fd), and writes an HTTP response * containing: * 
  *   1) If user requested an existing file, respond with the file
@@ -150,7 +150,37 @@ void handle_files_request(int fd) {
 void handle_proxy_request(int fd) {
 
   /* YOUR CODE HERE */
+  int proxy_socket_number;
+  // read from client
+  int bytes_read = read(fd, buf, LIMIT_HANDLE_MAX_SIZE);
+  // get ip of proxy target
 
+  struct hostent* hnt = gethostbyname(server_proxy_hostname);
+  struct sockaddr_in proxy_address;
+
+  if(hnt->h_addrtype == AF_INET){
+	  proxy_socket_number = socket(PF_INET, SOCK_STREAM, 0);
+	  memset(&proxy_address, 0, sizeof(struct sockaddr_in));
+	  proxy_address.sin_family = AF_INET;
+	  proxy_address.sin_addr = *(struct in_addr*)hnt->h_addr;
+	  proxy_address.sin_port = htons(server_proxy_port);
+  }else{ return;}
+  // connect to proxy target
+  if(connect( proxy_socket_number, (struct sockaddr*)&proxy_address, sizeof(struct sockaddr)) == -1){
+	  fprintf(stderr, "connect");
+	  return;
+  }
+  // write to proxy target
+	http_send_data( proxy_socket_number, buf, bytes_read);
+  // get response frome proxy target
+	do{
+		bytes_read = read( proxy_socket_number, buf, LIMIT_HANDLE_MAX_SIZE);
+		if(bytes_read <= 0) break;
+		// write to client
+		printf("%d----\n", bytes_read);
+		write( fd, buf, bytes_read);
+	}while(1);
+	close(proxy_socket_number);
 }
 
 /*
