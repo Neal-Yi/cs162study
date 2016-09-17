@@ -151,8 +151,9 @@ void handle_proxy_request(int fd) {
 
   /* YOUR CODE HERE */
   int proxy_socket_number;
+  fd_set read_fd_set,active_fd_set;
   // read from client
-  int bytes_read = read(fd, buf, LIMIT_HANDLE_MAX_SIZE);
+  int bytes_read,bytes_send;
   // get ip of proxy target
 
   struct hostent* hnt = gethostbyname(server_proxy_hostname);
@@ -164,24 +165,49 @@ void handle_proxy_request(int fd) {
 	  proxy_address.sin_family = AF_INET;
 	  proxy_address.sin_addr = *(struct in_addr*)hnt->h_addr;
 	  proxy_address.sin_port = htons(server_proxy_port);
-  }else{ return;}
+  }else{
+	 return;
+  }
   // connect to proxy target
   if(connect( proxy_socket_number, (struct sockaddr*)&proxy_address, sizeof(struct sockaddr)) == -1){
 	  fprintf(stderr, "connect");
 	  return;
   }
-  // write to proxy target
-	http_send_data( proxy_socket_number, buf, bytes_read);
-  // get response frome proxy target
-	do{
-		bytes_read = read( proxy_socket_number, buf, LIMIT_HANDLE_MAX_SIZE);
-		if(bytes_read <= 0) break;
-		// write to client
-		printf("%d----\n", bytes_read);
-		write( fd, buf, bytes_read);
-	}while(1);
+	printf("connect to %s\n", inet_ntoa(proxy_address.sin_addr));
+  FD_ZERO(&read_fd_set);
+  FD_SET(fd, &read_fd_set);
+  FD_SET(proxy_socket_number, &read_fd_set);
+  active_fd_set = read_fd_set;
+  while(1){
+	  read_fd_set = active_fd_set;
+	  if(select(FD_SETSIZE, &read_fd_set, NULL, NULL, NULL) < 0){
+		  perror("select");
+		  exit(EXIT_FAILURE); 
+	  }
+
+	 if(FD_ISSET(fd, &read_fd_set)){
+			  bytes_read = read(fd, buf, LIMIT_HANDLE_MAX_SIZE);
+			  if(bytes_read <= 0)
+				  break;
+			  printf("client send %d bytes",bytes_read);
+			  bytes_send = write(proxy_socket_number, buf, bytes_read);
+			  if(bytes_send < 0)
+				  break;
+	}
+	else if(FD_ISSET(proxy_socket_number, &read_fd_set)){
+			  bytes_read = read(proxy_socket_number, buf, LIMIT_HANDLE_MAX_SIZE);
+			  if(bytes_read <= 0)
+				  break;
+			  printf("%s",buf);
+			  bytes_send = write(fd, buf, bytes_read);
+			  if(bytes_send < 0)
+				  break;
+	}
+  }
 	close(proxy_socket_number);
+	free(hnt);
 }
+
 
 /*
  * Opens a TCP stream socket on all interfaces with port number PORTNO. Saves
