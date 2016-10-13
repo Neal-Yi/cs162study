@@ -13,7 +13,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
+#include <ctype.h>
 #include "libhttp.h"
 
 /*
@@ -26,7 +26,7 @@ int server_port;
 char *server_files_directory;
 char *server_proxy_hostname;
 int server_proxy_port;
-#define LIMIT_HANDLE_MAX_SIZE 20*1024
+#define LIMIT_HANDLE_MAX_SIZE 8192 
 /* 
  * Reads an HTTP request from stream (fd), and writes an HTTP response * containing: * 
  *   1) If user requested an existing file, respond with the file
@@ -147,12 +147,51 @@ void handle_files_request(int fd) {
  *   | client | <-> | httpserver | <-> | proxy target |
  *   +--------+     +------------+     +--------------+
  */
+int http_send_until_host(int fd, char* data, size_t size){
+	int send_bytes;
+	int i =0;
+	char str[10];
+	const char* host = "Host:";
+	int start, end;
+	char found = 0;
+	while(!found&&i < size){
+		if(data[i] == host[0]){
+			start = i;
+			end = i;
+			while(end < size&&isalpha(data[end]))end++;
+			if(end < size) {
+				end ++; // for symbol :
+				memcpy(str, data+start,end - start);
+				str[end - start] = '\0';
+				if(strcmp(str, host) == 0){
+					send_bytes = i;
+					found = 1;
+				}
+				i = end;
+			}
+		} 	
+		else {
+			while(i < size && isalpha(data[i]))i++;
+		}
+		while(i + 1 < size&&!(data[i] =='\r'&&data[i+1]=='\n'))i ++;
+		i+= 2;
+	}
+	if(found)
+	{
+		http_send_data(fd, data, send_bytes);
+	}
+	else{
+		http_send_data(fd, data, size);	
+	}
+	return i;// rest part to be sended
+}
 void handle_proxy_request(int fd) {
 
   /* YOUR CODE HERE */
   int proxy_socket_number;
+  fd_set read_fd_set,active_fd_set;
   // read from client
-  int bytes_read = read(fd, buf, LIMIT_HANDLE_MAX_SIZE);
+  int bytes_read,bytes_send;
   // get ip of proxy target
 
   struct hostent* hnt = gethostbyname(server_proxy_hostname);
@@ -164,24 +203,55 @@ void handle_proxy_request(int fd) {
 	  proxy_address.sin_family = AF_INET;
 	  proxy_address.sin_addr = *(struct in_addr*)hnt->h_addr;
 	  proxy_address.sin_port = htons(server_proxy_port);
-  }else{ return;}
+  }else{
+	 return;
+  }
+	printf("connect to %s:%d\n", inet_ntoa(proxy_address.sin_addr), server_proxy_port);
   // connect to proxy target
   if(connect( proxy_socket_number, (struct sockaddr*)&proxy_address, sizeof(struct sockaddr)) == -1){
 	  fprintf(stderr, "connect");
 	  return;
   }
-  // write to proxy target
-	http_send_data( proxy_socket_number, buf, bytes_read);
-  // get response frome proxy target
-	do{
-		bytes_read = read( proxy_socket_number, buf, LIMIT_HANDLE_MAX_SIZE);
-		if(bytes_read <= 0) break;
-		// write to client
-		printf("%d----\n", bytes_read);
-		write( fd, buf, bytes_read);
-	}while(1);
+  FD_ZERO(&read_fd_set);
+  FD_SET(fd, &read_fd_set);
+  FD_SET(proxy_socket_number, &read_fd_set);
+  active_fd_set = read_fd_set;
+  while(1){
+	  read_fd_set = active_fd_set;
+	  if(select(FD_SETSIZE, &read_fd_set, NULL, NULL, NULL) < 0){
+		  perror("select");
+		  exit(EXIT_FAILURE); 
+	  }
+
+	 if(FD_ISSET(fd, &read_fd_set)){
+			  bytes_read = read(fd, buf, LIMIT_HANDLE_MAX_SIZE);
+			  if(bytes_read <= 0)
+				  break;
+			  printf("client send %d bytes\n",bytes_read);
+			 // send until HOST method
+			int offset = http_send_until_host(proxy_socket_number, buf, bytes_read);
+			// if there is HOST method, modify the host address to proxy server name  
+		        if(offset > 0){
+				dprintf(proxy_socket_number, "Host: %s:%d\r\n", server_proxy_hostname, server_proxy_port);
+			}	
+			printf(offset != bytes_read?"there is host method\n":"host method not found");
+			// send the rest part in readed buffer
+			bytes_send = write(proxy_socket_number, buf+offset, bytes_read - offset);
+			  if(bytes_send < 0)
+				  break;
+	}
+	else if(FD_ISSET(proxy_socket_number, &read_fd_set)){
+			  bytes_read = read(proxy_socket_number, buf, LIMIT_HANDLE_MAX_SIZE);
+			  if(bytes_read <= 0)
+				  break;
+			  bytes_send = write(fd, buf, bytes_read);
+			  if(bytes_send < 0)
+				  break;
+	}
+  }
 	close(proxy_socket_number);
 }
+
 
 /*
  * Opens a TCP stream socket on all interfaces with port number PORTNO. Saves
