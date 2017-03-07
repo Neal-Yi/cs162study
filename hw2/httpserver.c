@@ -13,8 +13,15 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+<<<<<<< HEAD
 #include <ctype.h>
 #include "libhttp.h"
+=======
+#include <unistd.h>
+
+#include "libhttp.h"
+#include "wq.h"
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 
 /*
  * Global configuration variables.
@@ -22,10 +29,16 @@
  * handle_proxy_request. Their values are set up in main() using the
  * command line arguments (already implemented for you).
  */
+<<<<<<< HEAD
+=======
+wq_t work_queue;
+int num_threads;
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 int server_port;
 char *server_files_directory;
 char *server_proxy_hostname;
 int server_proxy_port;
+<<<<<<< HEAD
 #define LIMIT_HANDLE_MAX_SIZE 8192 
 /* 
  * Reads an HTTP request from stream (fd), and writes an HTTP response * containing: * 
@@ -136,6 +149,42 @@ void handle_files_request(int fd) {
   }
 }
 
+=======
+
+
+/*
+ * Reads an HTTP request from stream (fd), and writes an HTTP response
+ * containing:
+ *
+ *   1) If user requested an existing file, respond with the file
+ *   2) If user requested a directory and index.html exists in the directory,
+ *      send the index.html file.
+ *   3) If user requested a directory and index.html doesn't exist, send a list
+ *      of files in the directory with links to each.
+ *   4) Send a 404 Not Found response.
+ */
+void handle_files_request(int fd) {
+
+  /*
+   * TODO: Your solution for Task 1 goes here! Feel free to delete/modify *
+   * any existing code.
+   */
+
+  struct http_request *request = http_request_parse(fd);
+
+  http_start_response(fd, 200);
+  http_send_header(fd, "Content-Type", "text/html");
+  http_end_headers(fd);
+  http_send_string(fd,
+      "<center>"
+      "<h1>Welcome to httpserver!</h1>"
+      "<hr>"
+      "<p>Nothing's here yet.</p>"
+      "</center>");
+}
+
+
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 /*
  * Opens a connection to the proxy target (hostname=server_proxy_hostname and
  * port=server_proxy_port) and relays traffic to/from the stream fd and the
@@ -147,6 +196,7 @@ void handle_files_request(int fd) {
  *   | client | <-> | httpserver | <-> | proxy target |
  *   +--------+     +------------+     +--------------+
  */
+<<<<<<< HEAD
 int http_send_until_host(int fd, char* data, size_t size){
 	int send_bytes;
 	int i =0;
@@ -253,6 +303,63 @@ void handle_proxy_request(int fd) {
 }
 
 
+=======
+void handle_proxy_request(int fd) {
+
+  /*
+  * The code below does a DNS lookup of server_proxy_hostname and 
+  * opens a connection to it. Please do not modify.
+  */
+
+  struct sockaddr_in target_address;
+  memset(&target_address, 0, sizeof(target_address));
+  target_address.sin_family = AF_INET;
+  target_address.sin_port = htons(server_proxy_port);
+
+  struct hostent *target_dns_entry = gethostbyname2(server_proxy_hostname, AF_INET);
+
+  int client_socket_fd = socket(PF_INET, SOCK_STREAM, 0);
+  if (client_socket_fd == -1) {
+    fprintf(stderr, "Failed to create a new socket: error %d: %s\n", errno, strerror(errno));
+    exit(errno);
+  }
+
+  if (target_dns_entry == NULL) {
+    fprintf(stderr, "Cannot find host: %s\n", server_proxy_hostname);
+    exit(ENXIO);
+  }
+
+  char *dns_address = target_dns_entry->h_addr_list[0];
+
+  memcpy(&target_address.sin_addr, dns_address, sizeof(target_address.sin_addr));
+  int connection_status = connect(client_socket_fd, (struct sockaddr*) &target_address,
+      sizeof(target_address));
+
+  if (connection_status < 0) {
+    /* Dummy request parsing, just to be compliant. */
+    http_request_parse(fd);
+
+    http_start_response(fd, 502);
+    http_send_header(fd, "Content-Type", "text/html");
+    http_end_headers(fd);
+    http_send_string(fd, "<center><h1>502 Bad Gateway</h1><hr></center>");
+    return;
+
+  }
+
+  /* 
+  * TODO: Your solution for task 3 belongs here! 
+  */
+}
+
+
+void init_thread_pool(int num_threads, void (*request_handler)(int)) {
+  /*
+   * TODO: Part of your solution for Task 2 goes here!
+   */
+}
+
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 /*
  * Opens a TCP stream socket on all interfaces with port number PORTNO. Saves
  * the fd number of the server socket in *socket_number. For each accepted
@@ -263,7 +370,10 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
   struct sockaddr_in server_address, client_address;
   size_t client_address_length = sizeof(client_address);
   int client_socket_number;
+<<<<<<< HEAD
   pid_t pid;
+=======
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 
   *socket_number = socket(PF_INET, SOCK_STREAM, 0);
   if (*socket_number == -1) {
@@ -296,8 +406,14 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
 
   printf("Listening on port %d...\n", server_port);
 
+<<<<<<< HEAD
   while (1) {
 
+=======
+  init_thread_pool(num_threads, request_handler);
+
+  while (1) {
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
     client_socket_number = accept(*socket_number,
         (struct sockaddr *) &client_address,
         (socklen_t *) &client_address_length);
@@ -310,6 +426,7 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
         inet_ntoa(client_address.sin_addr),
         client_address.sin_port);
 
+<<<<<<< HEAD
     pid = fork();
     if (pid > 0) {
       close(client_socket_number);
@@ -328,6 +445,19 @@ void serve_forever(int *socket_number, void (*request_handler)(int)) {
 
   close(*socket_number);
 
+=======
+    // TODO: Change me?
+    request_handler(client_socket_number);
+    close(client_socket_number);
+
+    printf("Accepted connection from %s on port %d\n",
+        inet_ntoa(client_address.sin_addr),
+        client_address.sin_port);
+  }
+
+  shutdown(*socket_number, SHUT_RDWR);
+  close(*socket_number);
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 }
 
 int server_fd;
@@ -339,8 +469,13 @@ void signal_callback_handler(int signum) {
 }
 
 char *USAGE =
+<<<<<<< HEAD
   "Usage: ./httpserver --files www_directory/ --port 8000\n"
   "       ./httpserver --proxy inst.eecs.berkeley.edu:80 --port 8000\n";
+=======
+  "Usage: ./httpserver --files www_directory/ --port 8000 [--num-threads 5]\n"
+  "       ./httpserver --proxy inst.eecs.berkeley.edu:80 --port 8000 [--num-threads 5]\n";
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 
 void exit_with_usage() {
   fprintf(stderr, "%s", USAGE);
@@ -389,6 +524,15 @@ int main(int argc, char **argv) {
         exit_with_usage();
       }
       server_port = atoi(server_port_string);
+<<<<<<< HEAD
+=======
+    } else if (strcmp("--num-threads", argv[i]) == 0) {
+      char *num_threads_str = argv[++i];
+      if (!num_threads_str || (num_threads = atoi(num_threads_str)) < 1) {
+        fprintf(stderr, "Expected positive integer after --num-threads\n");
+        exit_with_usage();
+      }
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
     } else if (strcmp("--help", argv[i]) == 0) {
       exit_with_usage();
     } else {

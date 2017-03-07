@@ -3,6 +3,7 @@
  *
  * Stub implementations of the mm_* routines.
  */
+<<<<<<< HEAD
 #define DEBUG
 #include "mm_alloc.h"
 #include <stdlib.h>
@@ -96,10 +97,20 @@ void *mm_malloc(size_t size) {
 			return NULL;
 		return p->data;	
 	}	
+=======
+
+#include "mm_alloc.h"
+#include <stdlib.h>
+
+void *mm_malloc(size_t size) {
+    /* YOUR CODE HERE */
+    return NULL;
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 }
 
 void *mm_realloc(void *ptr, size_t size) {
     /* YOUR CODE HERE */
+<<<<<<< HEAD
    	if (ptr != NULL &&size == 0)
    	{
    		mm_free(ptr);
@@ -134,10 +145,14 @@ void *mm_realloc(void *ptr, size_t size) {
    	for(i = 0;i < zerobytes; i++)
    		p[i] = 0;
     return newptr;
+=======
+    return NULL;
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 }
 
 void mm_free(void *ptr) {
     /* YOUR CODE HERE */
+<<<<<<< HEAD
     if (ptr == NULL)
    		return;
    	// if (ptr < firstmeta || ptr > sbrk(0))
@@ -176,3 +191,6 @@ void mm_info(){
 	printf("start of heap:%p, brk:%p\n", firstmeta, sbrk(0) );
 }
 #endif
+=======
+}
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d

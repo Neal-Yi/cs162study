@@ -7,7 +7,11 @@
 void* (*mm_malloc)(size_t);
 void* (*mm_realloc)(void*, size_t);
 void (*mm_free)(void*);
+<<<<<<< HEAD
 void (*mm_info)();
+=======
+
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 void load_alloc_functions() {
     void *handle = dlopen("hw3lib.so", RTLD_NOW);
     if (!handle) {
@@ -33,16 +37,20 @@ void load_alloc_functions() {
         fprintf(stderr, "%s\n", dlerror());
         exit(1);
     }
+<<<<<<< HEAD
     mm_info = dlsym(handle, "mm_info");
     if ((error = dlerror()) != NULL)  {
         fprintf(stderr, "%s\n", dlerror());
         exit(1);
     }
+=======
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 }
 
 int main() {
     load_alloc_functions();
 
+<<<<<<< HEAD
     int *data = (int *)mm_malloc(sizeof(int));   
 
     // void *p[100];
@@ -70,6 +78,11 @@ int main() {
     assert(data != NULL);
 
     //data[0] = 0x162;
+=======
+    int *data = (int*) mm_malloc(sizeof(int));
+    assert(data != NULL);
+    data[0] = 0x162;
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
     mm_free(data);
     printf("malloc test successful!\n");
     return 0;

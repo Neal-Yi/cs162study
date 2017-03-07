@@ -14,7 +14,11 @@ void http_fatal_error(char *message) {
 }
 
 struct http_request *http_request_parse(int fd) {
+<<<<<<< HEAD
   struct http_request *request = calloc(1, sizeof(struct http_request));
+=======
+  struct http_request *request = malloc(sizeof(struct http_request));
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
   if (!request) http_fatal_error("Malloc failed");
 
   char *read_buffer = malloc(LIBHTTP_REQUEST_MAX_SIZE + 1);
@@ -23,7 +27,10 @@ struct http_request *http_request_parse(int fd) {
   int bytes_read = read(fd, read_buffer, LIBHTTP_REQUEST_MAX_SIZE);
   read_buffer[bytes_read] = '\0'; /* Always null-terminate. */
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
   char *read_start, *read_end;
   size_t read_size;
 
