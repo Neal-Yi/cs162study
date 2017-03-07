@@ -150,9 +150,12 @@ void mm_free(void *ptr) {
     	return;
     }
     p->free = 1;
-    while(p->free && p->prev != NULL)p = p->prev;
-    pMeta adjacentFirstFree = p->next;
-    p = p->next;
+    pMeta adjacentFirstFree = p;
+    while(p!= NULL&& p->free){
+  		adjacentFirstFree = p;
+  		p = p->prev;
+  	}
+    p = adjacentFirstFree->next;
     while(p!=NULL && p->free){
     	adjacentFirstFree->size += p->size + METADATA_SIZE;
     	p = p->next;
