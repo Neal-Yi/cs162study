@@ -20,11 +20,8 @@
 #ifndef LIBHTTP_H
 #define LIBHTTP_H
 
-<<<<<<< HEAD
 #include <stdlib.h>
 
-=======
->>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
 /*
  * Functions for parsing an HTTP request.
  */

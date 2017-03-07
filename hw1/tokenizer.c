@@ -45,11 +45,7 @@ struct tokens *tokenize(const char *line) {
         MODE_DQUOTE = 2;
   int mode = MODE_NORMAL;
 
-<<<<<<< HEAD
   for (int i = 0; i < line_length; i++) {
-=======
-  for (unsigned int i = 0; i < line_length; i++) {
->>>>>>> a6ef9f69aaa37bd8797091bd4eb338c15b7a7c2d
     char c = line[i];
     if (mode == MODE_NORMAL) {
       if (c == '\'') {
